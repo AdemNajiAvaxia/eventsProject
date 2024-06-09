@@ -9,11 +9,11 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>tn.esprit.spring</groupId>
-    <artifactId>eventsProject</artifactId>
+    <artifactId>eventsproject</artifactId>
     <version>nagui</version>
     <packaging>war</packaging>
-    <name>eventsProject</name>
-    <description>eventsProject</description>
+    <name>eventsproject</name>
+    <description>eventsproject</description>
     <properties>
         <java.version>1.8</java.version>
     </properties>
