@@ -1,73 +1,62 @@
 pipeline {
     agent any
     environment {
-        registry = "nagui69/eventsProject"
-        registryCredential = 'dockerhub'
+        registry = "nagui69/eventsproject"
+        registryCredential = 'dockerHub'
         dockerImage = ''
-        previousCommitSHA = sh(script: 'git log -n 1 HEAD^ --format=%H', returnStdout: true).trim()
-        previousCommitShort = previousCommitSHA.take(8)
-        new_commitSHA = "${env.GIT_COMMIT}"
-        new_commitShort = new_commitSHA.take(8) 
     }
-
     stages {
-        stage('Get Previous Commit SHA') {
+        stage("CHECKOUT GIT") {
             steps {
-                script {
-                    previousCommitSHA = sh (script: 'git log -n 1 HEAD^ --format=%H', returnStdout: true).trim()
-                    previousCommitShort = previousCommitSHA.take(8)
-                    new_commitSHA="${env.GIT_COMMIT}"
-                    new_commitShort=new_commitSHA.take(8) 
-                }
+                // Cette étape clone le référentiel Git
+                git branch: 'main',  url: 'https://github.com/AdemNajiAvaxia/eventsProject.git'
             }
         }
-
-        stage ('maven sonar') {
+        stage('MVN CLEAN') {
             steps {
+                echo 'Running Maven clean'
                 sh 'mvn clean'
-                sh 'mvn compile'
+            }
+        }
+        stage('ARTIFACT CONSTRUCTION') {
+            steps {
+                echo 'Constructing artifact'
+                sh 'mvn package -Dmaven.test.skip=true'
+            }
+        }
+        stage('MVN SONARQUBE') {
+            steps {
+                echo 'Running SonarQube analysis'
                 sh 'mvn sonar:sonar -Dsonar.login=admin -Dsonar.password=admin1'
             }
         }
-
-        stage ('maven build') {
+        stage('Tests - JUnit/Mockito') {
             steps {
-                sh 'mvn package'
+                sh 'mvn test'
             }
         }
-
-        stage("PUBLISH TO NEXUS") {
+        stage('MVN DEPLOY TO NEXUS') {
             steps {
                 sh 'mvn deploy'
             }
         }
-
-        stage('Building docker  image') {
+        stage('Building image') {
             steps {
-                script {
-                    sh "docker build ./ -t nagui69/eventsProject:dev${new_commitShort}"
-                }
+                sh 'docker build -t nagui69/eventsproject:1.0.0 .'
             }
         }
-
-        stage('push docker  image'){
-            steps{
-                script {
-                    docker.withRegistry('', registryCredential) {
-                        sh "docker push nagui69/eventsProject:dev${new_commitShort}"
-                    }
-                }
+        stage('Deploy image') {
+            steps {
+                sh '''
+                    docker login -u nagui69 -p changeme69
+                    docker push nagui69/eventsproject:1.0.0
+                '''
             }
         }
-
-        stage('cleaning image'){
-            steps{
-                script {
-                    sh "docker rmi nagui69/eventsProject:dev${new_commitShort}"
-                }
+        stage('Deploy with Docker Compose') {
+            steps {
+                sh 'docker compose up -d'
             }
         }
-
-
     }
 }
